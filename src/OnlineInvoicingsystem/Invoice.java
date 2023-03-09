@@ -1,144 +1,160 @@
 package OnlineInvoicingsystem;
+
 import java.io.Serializable;
-import java.math.BigDecimal;
 import java.sql.Connection;
-import java.sql.Date;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import invoicingSystem.item;
 
 public class Invoice implements Serializable {
-
-    private int id;
-    private Date date;
-    private String customerName;
-    private String cus_tel;
-    private BigDecimal totalAmount;
-    private int shopId;
-    private List<Invoice> invoiceDetails;
-    ArrayList<Item> items = new ArrayList<Item>();
-
+    private static final long serialVersionUID = 1L;
+    private int numberOfItems;
+    private int invoiceNo = 0;
+    private String customerFullName;
+    private String customerPhone;
+    private double totalAmount =0;
+    private double paidAmount =0;
+    private double balance =0;
+    private Date invoiceDate;
+     ArrayList<Item> items = new ArrayList<Item>();
     
-
-    public int getId() {
-        return id;
+    public void setCustomerFullName(String name) {
+    	this.customerFullName= name;
+    }
+    public String getCustomerFullName() {
+        return customerFullName;
+    }
+    public void setCustomerPhone(String Pnumber) {
+    	this.customerPhone= Pnumber;
+    }
+    public String getCustomerPhone() {
+        return customerPhone;
+    }
+    public void setInvoiceDate(Date date) {
+    	this.invoiceDate= date;
+    }
+    public Date getInvoiceDate() {
+        return invoiceDate;
     }
 
-    public  Date getDate() {
-        return date;
+    public void setTotalAmount(double tprice) {
+    	this.totalAmount= tprice;
     }
 
-    public String getCustomerName() {
-        return customerName;
-    }
-
-    public String getCustomerTel() {
-        return cus_tel;
-    }
-
-    public BigDecimal getTotalAmount() {
+    public double getTotalAmount() {
         return totalAmount;
     }
-
-    public int getShopId() {
-        return shopId;
+    public void setPaidAmount1(double paid) {
+    	this.paidAmount= paid;
+        
+        
+    }
+    public double getPaidAmount() {
+        return paidAmount;
+    }
+    public void setBalance(double blnc) {
+    	this.balance= blnc;
+    	
+        
+    }
+    public double getBalance() {
+        return balance;
     }
 
-    public List<Invoice> getInvoiceDetails() {
-        return invoiceDetails;
-    }
+	public void setInvoiceNo(int no) {
+		
+	this.invoiceNo = no;
 
-    public void addInvoiceDetail(Invoice invoiceDetail) {
-        invoiceDetails.add(invoiceDetail);
-    }
+	
+	}
+	 public int getInvoiceNo() {
+	        return invoiceNo;
+	    }
+	 
+	public void setNumberOfItems(int no2) {
+		
+		this.numberOfItems = no2;
 
-    public void InvoiceSave(Connection conn) throws SQLException {
-        String query = "INSERT INTO Invoice(date, customerName, cus_tel, shop_id, total_amount) VALUES (?, ?, ?, ?, ?)";
-        try (PreparedStatement stmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
-            stmt.setDate(1, date);
-            stmt.setString(2, customerName);
-            stmt.setString(3, cus_tel);
-            stmt.setInt(4, shop.getId());
-            stmt.setBigDecimal(5, totalAmount);
-            int affectedRows = stmt.executeUpdate();
-            if (affectedRows == 0) {
-                throw new SQLException("Creating invoice failed, no rows affected.");
-            }
-            try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
-                if (generatedKeys.next()) {
-                    this.id = generatedKeys.getInt(1);
-                } else {
-                    throw new SQLException("Creating invoice failed, no ID obtained.");
-                }
-            }
-            for (Invoice detail : details) {
-                detail.save(conn, id);
+		
+		}
+		public int getNumberOfItems() {
+			
+			return numberOfItems;
+		}
+    public ArrayList<Item> getItems() {
+        return items;
+    }
+    public void addItem(Item item) {
+        for (Item i : items) {
+            if (i.getItemID()==(item.getItemID())) {
+                System.out.println("Error: Item with ID " + item.getItemID() + " already exists.");
+                return;
             }
         }
+        items.add(item);
+        numberOfItems++;
+        totalAmount += item.getTotalPrice();
     }
 
-    public void delete(Connection conn) throws SQLException {
-        String query = "DELETE FROM Invoice WHERE id = ?";
-        try (PreparedStatement stmt = conn.prepareStatement(query)) {
+    public void  ItemgetById(Connection conn, int id) throws SQLException {
+        String sql = "SELECT * FROM items WHERE id = ?";
+        try (
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, id);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                	 int itemId = rs.getInt("itemID");
+                    String name = rs.getString("itemName");
+                    double price = rs.getDouble("unitPrice");
+                    int quantity = rs.getInt("quantity");
+                } 
+            }
+        } catch (SQLException ex) {
+            System.out.println("An error occurred while adding the item: " + ex.getMessage());
+        }
+		
+    }
+
+    public void saveVoice(Connection conn, int shopId) throws SQLException {
+        String sql = "INSERT INTO Item (shopId, itemID, itemName,unitPrice,quantity) VALUES (?, ?, ?, ?, ?)";
+       
+        try(  PreparedStatement stmt = conn.prepareStatement(sql)) {
+        	
+            stmt.setInt(1, shopId);
+            stmt.setInt(2, itemID);
+            stmt.setString(3, itemName);
+            stmt.setDouble(4, unitPrice);
+            stmt.setInt(5, quantity);
             stmt.executeUpdate();
-            for (InvoiceDetail detail : details) {
-                detail.delete(conn);
+        } catch (SQLException e) {
+            System.err.println("Failed to insert items: " + e.getMessage());
+        }
+        
+    }
+    public void ItemUpdate(Connection conn, int id) throws SQLException {
+        String sql = "UPDATE Item SET itemID = ?, itemName = ?, unitPrice = ?, quantity = ? WHERE id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+             stmt.setString(2, itemName);
+             stmt.setDouble(3, unitPrice);
+             stmt.setInt(1, quantity);
+            stmt.setInt(5, id);
+            stmt.executeUpdate();
+        }
+        }
+    
+        public void ItemDelete(Connection conn, int id) throws SQLException {
+            String sql = "DELETE FROM Item WHERE id = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setInt(1, id);
+                stmt.executeUpdate();
             }
-        }
-    }
 
-    public BigDecimal calculateTotalAmount() {
-        BigDecimal total = BigDecimal.ZERO;
-        for (InvoiceDetail detail : details) {
-            total = total.add(detail.calculateTotalAmount());
-        }
-        return total;
     }
-
-    public static List<Invoice> loadAll(Connection conn) throws SQLException {
-        String query = "SELECT id, date, customerName, cus_tel, shop_id, total_amount FROM Invoice";
-        try (Statement stmt = conn.createStatement()) {
-            ResultSet rs = stmt.executeQuery(query);
-            List<Invoice> invoices = new ArrayList<>();
-            while (rs.next()) {
-                int id = rs.getInt("id");
-                Date date = rs.getDate("date");
-                String customerName = rs.getString("customerName");
-                String cus_tel = rs.getString("cus_tel");
-                int shop_id = rs.getInt("shop_id");
-                BigDecimal totalAmount = rs.getBigDecimal("total_amount");
-                List<InvoiceDetail> details = InvoiceDetail.loadAll(conn, id);
-                Shop shop = Shop.load(conn, shop_id);
-                Invoice invoice = new Invoice(id, date, customerName, cus_tel, shop, details, totalAmount);
-                invoices.add(invoice);
-            }
-            return invoices;
-        }
-    }
-
-    public static Invoice load(Connection conn, int id) throws SQLException {
-        String query = "SELECT date, customerName, cus_tel, shop_id, total_amount FROM Invoice WHERE id = ?";
-        try (PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setInt(1, id);
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                Date date = rs.getDate("date");
-                String customerName = rs.getString("customerName");
-                String cus_tel = rs.getString("cus_tel");
-                int shop_id = rs.getInt("shop_id");
-                BigDecimal totalAmount = rs.getBigDecimal("total_amount");
-                List<InvoiceDetail> details = InvoiceDetail.loadAll(conn, id);
-                Shop shop = Shop.load(conn, shop_id);
-                return new Invoice(id, date, customerName, cus_tel, shop, details, totalAmount);
-            } else {
-                return null;
-            }
-        }
-    }
+   
